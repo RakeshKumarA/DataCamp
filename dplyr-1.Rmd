@@ -134,3 +134,152 @@ ex3d <- select(hflights,TailNum,starts_with("Taxi"))
 
 ```
 
+## The Mutate Verb
+
+mutate() creates new columns which are added to a copy of the dataset. 
+mutate(df, z = x + y)
+
+```{r,message=FALSE,warning=FALSE}
+# Add the new variable ActualGroundTime to a copy of hflights and save the result as g1.
+g1 <- mutate(hflights,ActualGroundTime = ActualElapsedTime - AirTime)
+
+# Add the new variable GroundTime to g1. Save the result as g2.
+g2 <- mutate(g1,GroundTime = TaxiIn + TaxiOut)
+identical(g2$GroundTime,g2$ActualGroundTime)
+
+# Add the new variable AverageSpeed to g2. Save the result as g3.
+g3 <- mutate(g2,AverageSpeed = Distance / AirTime * 60)
+
+# Print out g3
+g3
+
+```
+
+### Add multiple variables using mutate
+
+mutate(my_df, x = a + b, y = x + c) ## Reuse of the newly created column
+
+```{r,message=FALSE,warning=FALSE}
+# Add a second variable loss_ratio to the dataset: m1
+m1 <- mutate(hflights, loss = ArrDelay - DepDelay, loss_ratio = loss/DepDelay)
+
+# Add the three variables as described in the third instruction: m2
+m2 <- mutate(hflights,TotalTaxi = TaxiIn + TaxiOut,ActualGroundTime = ActualElapsedTime - AirTime, Diff = TotalTaxi - ActualGroundTime)
+
+```
+
+## The Filter Verb
+
+### Logical operators
+
+R comes with a set of logical operators that you can use inside filter():
+
+* x < y, TRUE if x is less than y
+* x <= y, TRUE if x is less than or equal to y
+* x == y, TRUE if x equals y
+* x != y, TRUE if x does not equal y
+* x >= y, TRUE if x is greater than or equal to y
+* x > y, TRUE if x is greater than y
+* x %in% c(a, b, c), TRUE if x is in the vector c(a, b, c)
+
+
+```{r,message=FALSE,warning=FALSE}
+# All flights that traveled 3000 miles or more
+filter(hflights,Distance>=3000)
+
+# All flights flown by one of JetBlue, Southwest, or Delta
+filter(hflights,hflights$UniqueCarrier %in% c('B6','WN','DL'))
+
+# All flights where taxiing took longer than flying
+filter(hflights,(TaxiIn+TaxiOut) > AirTime)
+
+```
+
+### Combining tests using boolean operators
+
+R also comes with a set of boolean operators that you can use to combine multiple logical tests into a single test. These include & (and), | (or), and ! (not). Instead of using the & operator, you can also pass several logical tests to filter(), separated by commas.
+
+filter(df, a > 0 & b > 0)
+filter(df, a > 0, b > 0)
+
+```{r,message=FALSE,warning=FALSE}
+# All flights that departed before 5am or arrived after 10pm
+filter(hflights, DepTime < 500 | ArrTime > 2200)
+
+# All flights that departed late but arrived ahead of schedule
+filter(hflights, DepDelay > 0 & ArrDelay < 0)
+
+# All flights that were cancelled after being delayed
+filter(hflights, DepDelay > 0 & Cancelled == 1)
+
+```
+
+### Combination of Filter, Mutate and Select
+
+```{r,message=FALSE,warning=FALSE}
+# Select the flights that had JFK as their destination: c1
+c1 <- filter(hflights,Dest == 'JFK')
+
+# Combine the Year, Month and DayofMonth variables to create a Date column: c2
+c2 <- mutate(c1,Date = paste(Year,Month,DayofMonth,sep = '-'))
+
+# Print out a selection of columns of c2
+select(c2,Date,DepTime,ArrTime,TailNum)
+
+```
+
+## Arranging your data using arrange verb
+
+arrange() can be used to rearrange rows according to any type of data. 
+
+If you pass arrange() a character variable, for example, R will rearrange the rows in alphabetical order according to values of the variable. 
+
+If you pass a factor variable, R will rearrange the rows according to the order of the levels in your factor (running levels() on the variable reveals this order).
+
+```{r,message=FALSE,warning=FALSE}
+# Definition of dtc
+dtc <- filter(hflights, Cancelled == 1, !is.na(DepDelay))
+
+# Arrange dtc by departure delays
+arrange(dtc,DepDelay)
+
+# Arrange dtc so that cancellation reasons are grouped
+arrange(dtc,CancellationCode)
+
+# Arrange dtc according to carrier and departure delays
+arrange(dtc,UniqueCarrier,DepDelay)
+
+# Arrange according to carrier and decreasing departure delays
+arrange(hflights,UniqueCarrier,desc(DepDelay))
+
+# Arrange flights by total delay (normal order).
+arrange(hflights,DepDelay + ArrDelay)
+
+```
+
+
+## Summarise verb
+
+summarise(), the last of the 5 verbs, follows the same syntax as mutate(), but the resulting dataset consists of a single row instead of an entire new column in the case of mutate().
+
+```{r,message=FALSE,warning=FALSE}
+# Print out a summary with variables min_dist and max_dist
+summarise(hflights,min_dist = min(Distance), max_dist = max(Distance))
+
+# Print out a summary with variable max_div which are diverted
+
+summarise(filter(hflights,Diverted == 1),max_div = max(Distance))
+
+# Remove rows that have NA ArrDelay: temp1
+temp1 <- filter(hflights,!is.na(ArrDelay))
+
+# Generate summary about ArrDelay column of temp1
+summarise(temp1,earliest = min(ArrDelay),average = mean(ArrDelay), latest = max(ArrDelay), sd = sd(ArrDelay))
+
+# Keep rows that have no NA TaxiIn and no NA TaxiOut: temp2
+temp2 <- filter(hflights,!is.na(TaxiIn) & !is.na(TaxiOut))
+
+# Print the maximum taxiing difference of temp2 with summarise()
+summarise(temp2,max_taxi_diff = max(abs(TaxiIn - TaxiOut)))
+
+```
