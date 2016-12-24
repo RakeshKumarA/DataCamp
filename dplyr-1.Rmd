@@ -1,0 +1,136 @@
+## dplyr - 1
+
+Throughout this course you will use dplyr to analyze a data set of airline flight data containing flights that departed from Houston. This data is stored in a package called hflights.
+
+```{r,message=FALSE,warning=FALSE}
+# Load the dplyr package
+require(dplyr)
+
+# Load the hflights package
+require(hflights)
+
+# Call both head() and summary() on hflights
+head(hflights)
+
+summary(hflights)
+
+# Number of Observations and columns
+dim(hflights)
+```
+
+### Convert data.frame to table
+
+A tbl is just a special kind of data.frame. They make your data easier to look at, but also easier to work with. On top of this, it is straightforward to derive a tbl from a data.frame structure using tbl_df().
+
+The tbl format changes how R displays your data, but it does not change the data's underlying data structure. You can do anything with the hflights tbl that you could do with the hflights data.frame.
+
+```{r,message=FALSE,warning=FALSE}
+# Convert the hflights data.frame into a hflights tbl
+hflights <- tbl_df(hflights)
+
+# Display the hflights tbl
+hflights
+
+# Create the object carriers, this is to prove tbl behaves like Dataframe.
+carriers <- hflights$UniqueCarrier
+```
+
+### Changing labels of hflights, part 1
+
+A bit of cleaning would be a good idea since the UniqueCarrier variable of hflights uses a confusing code system. 
+
+To do this, let's work with a lookup table, that comes in the form of a named vector. When you subset the lookup table with a character string (like the character strings in UniqueCarrier), R will return the values of the lookup table that correspond to the names in the character string. 
+```{r,message=FALSE,warning=FALSE}
+lut <- c("AA" = "American", "AS" = "Alaska", "B6" = "JetBlue", "CO" = "Continental", 
+         "DL" = "Delta", "OO" = "SkyWest", "UA" = "United", "US" = "US_Airways", 
+         "WN" = "Southwest", "EV" = "Atlantic_Southeast", "F9" = "Frontier", 
+         "FL" = "AirTran", "MQ" = "American_Eagle", "XE" = "ExpressJet", "YV" = "Mesa")
+
+# Add the Carrier column to hflights
+hflights$Carrier <- lut[hflights$UniqueCarrier]
+
+hflights
+```
+
+### Changing labels of hflights, part 2
+
+Let's try a similar thing, but this time to change the labels in the CancellationCode column. 
+
+```{r,message=FALSE,warning=FALSE}
+# The lookup table
+unique(hflights$CancellationCode)
+
+head(as.data.frame(subset(hflights, CancellationCode == "")))
+
+hflights[hflights$CancellationCode == "",]$CancellationCode <- "E"
+
+
+lut <- c("A" = "carrier", "B" = "weather", "C" = "FFA", "D" = "security", "E" = "not cancelled")
+
+# Add the Code column
+hflights$Code <- lut[hflights$CancellationCode]
+
+# Glimpse at hflights
+glimpse(hflights)
+
+```
+
+## The Select Verb
+
+To answer the simple question whether flight delays tend to shrink or grow during a flight, we can safely discard a lot of the variables of each flight. To select only the ones that matter, we can use select().
+
+select(df, var1, var2)
+
+select(df, 1:4, -2) = Will select first four columns except the second one.
+
+```{r,message=FALSE,warning=FALSE}
+# Print out a tbl with the four columns of hflights related to delay
+select(hflights,ActualElapsedTime:DepDelay)
+
+# Print out the columns Origin up to Cancelled of hflights
+select(hflights,Origin:Cancelled)
+
+# Answer to last question: be concise!
+# Find the most concise way to select: columns Year up to and including DayOfWeek, columns ArrDelay up to and including Diverted
+
+names(hflights)
+select(hflights,Year:DayOfWeek,ArrDelay:Diverted)
+
+```
+
+### Helper functions for variable selection
+
+dplyr comes with a set of helper functions that can help you select groups of variables inside a select() call:
+
+* starts_with("X"): every name that starts with "X",
+* ends_with("X"): every name that ends with "X",
+* contains("X"): every name that contains "X",
+* matches("X"): every name that matches "X", where "X" can be a regular expression,
+* num_range("x", 1:5): the variables named x01, x02, x03, x04 and x05,
+* one_of(x): every name that appears in x, which should be a character vector.
+
+```{r,message=FALSE,warning=FALSE}
+# Print out a tbl containing just ArrDelay and DepDelay
+select(hflights,contains("Delay"))
+
+# Use a combination of helper functions and variable names to print out only the UniqueCarrier, FlightNum, TailNum, Cancelled, and CancellationCode columns of hflights
+select(hflights,UniqueCarrier, ends_with("Num"),starts_with("Cancel"))
+
+# Find the most concise way to return the following columns with select and its helper functions: DepTime, ArrTime, ActualElapsedTime, AirTime, ArrDelay, DepDelay
+select(hflights,ends_with("Time"),ends_with("Delay"))
+
+# Finish select call so that ex1d matches ex1r
+names(hflights)
+ex1r <- hflights[c("TaxiIn", "TaxiOut", "Distance")]
+ex1d <- select(hflights, starts_with("Taxi"),Distance)
+
+# Finish select call so that ex2d matches ex2r
+ex2r <- hflights[c("Year", "Month", "DayOfWeek", "DepTime", "ArrTime")]
+ex2d <- select(hflights,Year:ArrTime,-DayofMonth)
+
+# Finish select call so that ex3d matches ex3r
+ex3r <- hflights[c("TailNum", "TaxiIn", "TaxiOut")]
+ex3d <- select(hflights,TailNum,starts_with("Taxi"))
+
+```
+
