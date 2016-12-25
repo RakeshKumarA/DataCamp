@@ -1,0 +1,87 @@
+## dplyr - 2
+
+### A basic join
+* left_join() is the basic join function in dplyr - left_join(x,y,by=c("a","b"))
+* right_join() - right_join(x,y,by=c("a","b"))
+* inner_join() - inner_join(x,y,by=c("a","b"))
+* outer_join() - outer_join(x,y,by=c("a","b"))
+
+### Semi_join
+
+semi-joins provide a concise way to filter data from the first dataset based on information in a second dataset.
+
+### anti_join
+
+anti-joins provide a useful way to reason about how a mutating join will work before you apply the join.
+
+## set Operations:
+* Union
+* Intersection
+* Setdiff
+
+#### Use a set operation to create a dataset with every song contained on aerosmith and/or greatest_hits. Use nrow() to count the total number of songs.
+
+aerosmith %>% 
+ # Create the new dataset using a set operation
+ 
+  union(greatest_hits) %>% 
+  
+  # Count the total number of songs
+  
+  nrow()
+
+#### Use a set operation to create a dataset containing every track that is in both Aerosmith and Greatest Hits.
+  
+aerosmith %>% 
+
+  intersect(greatest_hits)
+  
+#### Which songs are on Live! Bootleg but not on Greatest Hits? 
+
+##### Select the song names from live
+live_songs <- live %>% select(song)
+
+##### Select the song names from greatest_hits
+greatest_songs <- greatest_hits %>% select(song)
+
+##### Create the new dataset using a set operation
+live_songs %>%
+
+  setdiff(greatest_songs)
+
+#### Combining all together
+
+#### Select songs from live and greatest_hits
+live_songs <- live %>% select(song)
+
+greatest_songs <- greatest_hits %>% select(song)
+
+#### Return the songs that only exist in one dataset
+only_live_songs <- live_songs %>% setdiff(greatest_songs)
+
+only_greatest_songs <- greatest_songs %>% setdiff(live_songs)
+
+only_live_songs %>% union(only_greatest_songs)
+
+### set equal
+
+To check if two datasets are identical not necessarily same row identifier. Identical fails if datasets are same but not ordered in same row.
+
+## bind
+
+* bind_rows() and bind_cols() are faster than rbind() and cbind(). 1
+* bind_rows() and bind_cols() can take a list of data frames as input. 2
+* bind_rows() and bind_cols() always return a tibble (a data frame with class tbl_df). 3
+* rbind() returns an error when column names do not match across data frames. bind_rows() creates a column for each unique column name and distributes missing values as appropriate.
+
+##### Bind side_one and side_two into a single dataset
+side_one %>%
+
+  bind_rows(side_two)
+
+```{r,warning=FALSE,message=FALSE}
+
+
+
+
+```
