@@ -270,6 +270,21 @@ summarise(hflights,min_dist = min(Distance), max_dist = max(Distance))
 
 summarise(filter(hflights,Diverted == 1),max_div = max(Distance))
 
+```
+
+### Aggregate functions in summarise
+
+* min(x) - minimum value of vector x.
+* max(x) - maximum value of vector x.
+* mean(x) - mean value of vector x.
+* median(x) - median value of vector x.
+* quantile(x, p) - pth quantile of vector x.
+* sd(x) - standard deviation of vector x.
+* var(x) - variance of vector x.
+* IQR(x) - Inter Quartile Range (IQR) of vector x.
+* diff(range(x)) - total range of vector x.
+
+```{r,message=FALSE,warning=FALSE}
 # Remove rows that have NA ArrDelay: temp1
 temp1 <- filter(hflights,!is.na(ArrDelay))
 
@@ -281,5 +296,129 @@ temp2 <- filter(hflights,!is.na(TaxiIn) & !is.na(TaxiOut))
 
 # Print the maximum taxiing difference of temp2 with summarise()
 summarise(temp2,max_taxi_diff = max(abs(TaxiIn - TaxiOut)))
+
+```
+
+### dplyr aggregate functions for summarise
+
+* first(x) - The first element of vector x.
+* last(x) - The last element of vector x.
+* nth(x, n) - The nth element of vector x.
+* n() - The number of rows in the data.frame or group of observations that summarise() describes.
+*  n_distinct(x) - The number of unique values in vector x.
+
+```{r,message=FALSE,warning=FALSE}
+# Generate summarizing statistics for hflights
+summarise(hflights,
+          n_obs = n(),
+          n_carrier = n_distinct(UniqueCarrier),
+          n_dest = n_distinct(Dest))
+
+unique(hflights$UniqueCarrier)
+# All American Airline flights
+aa <- filter(hflights, UniqueCarrier == "AA")
+
+# Generate summarizing statistics for aa 
+summarise(aa, n_flights = n(), n_canc = sum(Cancelled == 1), avg_delay = mean(ArrDelay, na.rm = TRUE))
+
+```
+
+
+## Pipe Operator
+
+* Take the hflights data set and then ...
+* Add a variable named diff that is the result of subtracting TaxiIn from TaxiOut, and then ...
+* Pick all of the rows whose diff value does not equal NA, and then ...
+* Summarise the data set with a value named avg that is the mean diff value.
+
+```{r,message=FALSE,warning=FALSE}
+# Write the 'piped' version of the English sentences.
+hflights %>% mutate(diff = TaxiOut - TaxiIn)%>% filter(!is.na(diff))%>% summarise(avg = mean(diff))
+
+```
+
+* mutate() the hflights dataset and add two variables:
+    + RealTime: the actual elapsed time plus 100 minutes (for the overhead that flying involves) and
+    + mph: calculated as Distance / RealTime * 60, then
+* filter() to keep observations that have an mph that is not NA and below 70, finally
+* summarise() the result by creating four summary variables:
+    + n_less, the number of observations,
+    + n_dest, the number of destinations,
+    + min_dist, the minimum distance and
+    + max_dist, the maximum distance.
+
+```{r,message=FALSE,warning=FALSE}
+hflights %>% mutate(RealTime = ActualElapsedTime + 100, mph = Distance/RealTime*60) %>% 
+             filter(!is.na(mph) & mph < 70) %>%
+             summarise(n_less = n(), n_dest = n_distinct(Dest), min_dist = min(Distance), max_dist =  max(Distance))
+
+```
+
+
+## group_by clause
+
+group_by() lets you define groups within your data set. Its influence becomes clear when calling summarise() on a grouped dataset: summarising statistics are calculated for the different groups separately.
+
+For eg:
+
+* Use group_by() to group hflights by UniqueCarrier.
+* summarise() the grouped tbl with two summary variables:
+    + p_canc, the percentage of cancelled flights
+    + avg_delay, the average arrival delay of flights whose delay does not equal NA.
+* Finally, order the carriers in the summary from low to high by their average arrival delay. Use percentage of flights cancelled to break any ties.
+
+```{r,message=FALSE,warning=FALSE}
+hflights %>%
+  group_by(UniqueCarrier) %>%
+  summarise(p_canc = mean(Cancelled)*100,
+            avg_delay = mean(ArrDelay, na.rm = TRUE)) %>%
+  arrange(avg_delay, p_canc)
+
+```
+
+### Combine group_by with Mutute
+
+You can also combine group_by() with mutate(). When you mutate grouped data, mutate() will calculate the new variables independently for each group. This is particularly useful when mutate() uses the rank() function, that calculates within-group rankings.
+
+* filter() the hflights tbl to only keep observations for which ArrDelay is not NA and positive.
+* Use group_by() on the result to group by UniqueCarrier.
+* Next, use summarise() to calculate the average ArrDelay per carrier. Call this summary variable avg.
+* Feed the result into a mutate() call: create a new variable, rank, calculated as rank(avg).
+* Finally, arrange by this new rank variable
+
+```{r,message=FALSE,warning=FALSE}
+hflights %>%
+      filter(!is.na(ArrDelay) & ArrDelay > 0) %>%
+      group_by(UniqueCarrier) %>%
+      summarise(avg = mean(ArrDelay)) %>%
+      mutate(rank = rank(avg)) %>%
+      arrange(rank)
+
+```
+
+How many airplanes only flew to only one destination? The tbl you print out should have a single column, named nplanes and a single row.
+
+```{r,message=FALSE,warning=FALSE}
+# How many airplanes only flew to one destination?
+hflights %>%
+  group_by(TailNum) %>%
+  summarise(Distinct_dest = n_distinct(Dest)) %>%
+  filter(Distinct_dest == 1) %>%
+  summarise(nplanes=n())
+
+```
+
+* Find the most visited destination for each carrier. The tbl you print out should contain four columns:
+    + UniqueCarrier and Dest,
+    + n, how often a carrier visited a particular destination,
+    + rank, how each destination ranks per carrier. rank should be 1 for every row, as you want to        find the most visited destination for each carrier.
+
+```{r,message=FALSE,warning=FALSE}
+# Find the most visited destination for each carrier
+hflights %>%
+  group_by(UniqueCarrier,Dest) %>%
+  summarise(n = n()) %>%
+  mutate(rank = rank(desc(n))) %>%
+  filter(rank == 1)
 
 ```
