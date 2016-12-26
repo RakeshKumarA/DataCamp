@@ -78,6 +78,8 @@ To check if two datasets are identical not necessarily same row identifier. Iden
 side_one %>%
 
   bind_rows(side_two)
+  
+
 
 ```{r,warning=FALSE,message=FALSE}
 
