@@ -303,8 +303,134 @@ tm package functions do not need content_transformer(), but base R and qdap func
 Apply your customized function to the tweet_corp: clean_corp
 clean_corp <- clean_corpus(coffee_corpus)
 
-```{r,warning=FALSE,message=FALSE}
+### TDM and DTM
 
+Term Document Matrix: Word as rows and documents as columns
+Document Term Matrix: Document is a row and word is column (Transform)
+
+The document-term matrix is used when you want to have each document represented as a row. This can be useful if you are comparing authors within rows, or the data is arranged chronologically and you want to preserve the time series.
+
+#### Make a Term Document Matrix
+
+```{r,warning=FALSE,message=FALSE}
+coffee_tweets_1 <- iconv(enc2utf8(coffee_tweets),sub="byte")
+coffee_source_1 <- VectorSource(coffee_tweets_1)
+coffee_corpus_1 <- VCorpus(coffee_source_1)
+
+
+clean_corpus <- function(corpus){  
+  corpus <- tm_map(corpus, content_transformer(replace_abbreviation))  
+  corpus <- tm_map(corpus, removePunctuation)  
+  corpus <- tm_map(corpus, removeNumbers)  
+  corpus <- tm_map(corpus, removeWords, c(stopwords("en"), "coffee"))  
+  corpus <- tm_map(corpus, content_transformer(tolower))  
+  return(corpus)  
+}
+
+clean_corp <- clean_corpus(coffee_corpus_1)
+
+# Create the dtm from the corpus: coffee_dtm
+coffee_dtm <- DocumentTermMatrix(clean_corp)
+
+# Print out coffee_dtm data
+coffee_dtm
+
+# Convert coffee_dtm to a matrix: coffee_m
+coffee_m <- as.matrix(coffee_dtm)
+
+# Print the dimensions of coffee_m
+dim(coffee_m)
+
+# Review a portion of the matrix
+coffee_m[148:150,2587:2590]
 
 ```
 
+#### Make a Document Term Matrix
+
+```{r,warning=FALSE,message=FALSE}
+# Create a TDM from clean_corp: coffee_tdm
+coffee_tdm <- TermDocumentMatrix(clean_corp)
+
+# Print coffee_tdm data
+coffee_tdm
+
+# Convert coffee_tdm to a matrix: coffee_m
+coffee_m2 <- as.matrix(coffee_tdm)
+
+# Print the dimensions of the matrix
+dim(coffee_m2)
+
+# Review a portion of the matrix
+coffee_m2[2587:2590, 148:150]
+
+```
+
+### Visualizations
+
+#### Frequent Terms with tm
+
+In order to analyze TDM or DTM we need to change it to a simple matrix using as.matrix.
+
+1. Calling rowSums() on your newly made matrix aggregates all the terms used in a passage. 
+2. Once you have the rowSums(), you can sort() them with decreasing = TRUE, so you can focus on the most common terms.
+3. Lastly, you can make a barplot() of the top 5 terms of term_frequency with the following code.
+    + barplot(term_frequency[1:5], col = "#C0DE25")
+
+```{r,warning=FALSE,message=FALSE}
+## coffee_tdm and coffee_m2 are loaded from previous exercise
+
+# Calculate the rowSums: term_frequency
+term_frequency <- rowSums(coffee_m2)
+
+# Sort term_frequency in descending order
+term_frequency <- sort(term_frequency,decreasing = TRUE)
+
+# View the top 10 most common words
+
+term_frequency[1:10]
+# Plot a barchart of the 10 most common words
+barplot(term_frequency[1:10], col = "tan", las = 2)
+
+```
+
+#### Frequent terms with qdap
+
+```{r,warning=FALSE,message=FALSE}
+# Create frequency
+frequency <- freq_terms(tweets$text, top = 10, at.least = 3, stopwords = "Top200Words")
+
+# Make a frequency barchart
+plot(frequency)
+
+# Create frequency2
+frequency2 <- freq_terms(tweets$text, top = 10, at.least = 3, tm::stopwords("english"))
+
+# Make a frequency2 barchart
+plot(frequency2)
+
+```
+
+### A simple word cloud
+
+A word cloud is a visualization of terms. In a word cloud, size is often scaled to frequency and in some cases the colors may indicate another measurement. For now, we're keeping it simple: size is related to individual word frequency and we are just selecting a single color.
+
+```{r,warning=FALSE,message=FALSE}
+require(wordcloud)
+
+## term_frequency is loaded into your workspace
+
+# Load wordcloud package
+require(wordcloud)
+
+# Print the first 10 entries in term_frequency
+term_frequency[1:10]
+
+# Create word_freqs
+word_freqs <- data.frame(term = names(term_frequency),
+                         num = term_frequency)
+
+# Create a wordcloud for the values in word_freqs
+wordcloud(word_freqs$term, word_freqs$num, max.words = 100, colors = "red")
+
+```
